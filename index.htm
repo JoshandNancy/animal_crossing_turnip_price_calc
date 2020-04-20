@@ -1,0 +1,453 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<!-- saved from url=(0041)http://tobikabu.web.fc2.com/tobikabu.html -->
+<html lang="kr" class=""><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+
+<meta http-equiv="Content-Script-Type" content="text/javascript">
+<meta http-equiv="Content-Style-Type" content="text/css">
+<script type="text/javascript" src="./js/cookie.js"></script>
+<script type="text/javascript" src="./js/option.js"></script>
+<script type="text/javascript" src="./js/tobikabu.js"></script>
+
+<link rel="stylesheet" href="./js/tobikabu.css" type="text/css">
+<link rel="stylesheet" href="./js/kabuka_data.css" type="text/css">
+<title>비공식 - 동물의 숲 무 시세 예측기</title>
+
+<body onload="setOption();setVerInfo();getCookie();" style="padding-top: 50px !important;">
+    
+<h3>무파니 제공 / <span id="verInfo"> v0.1 </span> 비공식 동물의 숲 무 시세 예측기</h3>
+<div class="noscript">
+<noscript>
+자바스크립트 활성화가 필요합니다.
+</noscript>
+</div>	<!-- div.noscript -->
+<!--
+1. 하락형
+한번도 가격이 오르지 않고 끝까지 가격이 쭉쭉떨어짐. 목요일 오전까지 봤을때 한번도 값이 안올랐으면 이 패턴임. 빨리 손절하거나 다른 마을에 팔아야함.
+
+2. 파동형
+산 가격에서 랜덤으로 몇벨씩 왔다갔다 함. 이 경우에는 예측이 거의 불가능하니 걍 손절하거나 다른 갤러의 마을에 파는게 좋음
+
+3. 4기형
+주 초반에는 값이 계속 떨어지다가 값이 오르기 시작했을때 계속 올라서 4번째 올랐을때 100~150벨 사이에서 피크를 치는 유형. 소소하게 벌 수 있음
+
+4. 3기형(대박형)
+주 초반에는 위의 3번이랑 같은데 얘는 무값이 갑자시 엄청 상승해서 3번째 올랐을때 피크를 침. 무값이 400벨이거나 하면 보통 이 패턴에서 최고점을 찍은 것이니 바로 팔아야함
+
+-->
+<div class="main">
+
+<!--
+<h4>예측옵션</h4> --><!-- 옵션 -->
+<form action="./ac_jp.htm#" style ="display: none;" name="option">
+<p>
+반올림(하한)： <!--반올림(하한)-->
+<label><input type="radio" name="roundingL">반올림</label>
+<label><input type="radio" name="roundingL" checked="">내림</label>
+<label><input type="radio" name="roundingL">올림</label><br>
+반올림(상한)： <!--반올림(상한)-->
+<label><input type="radio" name="roundingU">반올림</label>
+<label><input type="radio" name="roundingU">내림</label>
+<label><input type="radio" name="roundingU" checked="">올림</label><br>
+오차범위：± <!--오차-->
+<input type="text" size="3" name="errorAllowance" value="0">벨<br>
+</p>
+</form>
+
+<!-- 고급 버튼 -->
+<hr align="left" width="500px">
+<input type="button" id="showButton" value="고급설정" style ="display: none;" onclick="showOption();">
+<input type="button" id="hideButton" value="고급설정 숨기기" style="display: none;" onclick="hideOption();">
+<div class="option" id="optionblock" style="display: none;">
+よく分からない場合は触らないでください。<br>
+<form action="http://tobikabu.web.fc2.com/tobikabu.html#" name="setting">
+<p>
+<select name="nanimori">
+<option value="1" disabled="">どうぶつの森</option>
+<option value="2" disabled="">どうぶつの森+</option>
+<option value="3" disabled="">どうぶつの森e+</option>
+<option value="4">おいでよ どうぶつの森</option>
+<option value="5">街へいこうよ どうぶつの森</option>
+<option value="6" selected="">とびだせ どうぶつの森</option>
+<option value="0">カスタム</option>
+</select>
+<input type="button" value="変更" onclick="setOption();"><br>
+<table><tbody>
+<tr><th>型</th><th>時期</th><th>変動値</th><th>変動方式</th></tr>
+<tr><td rowspan="7">波型</td><td>山</td>
+<td><input type="text" size="3" name="namiYamaMin" value="90">～<input type="text" size="3" name="namiYamaMax" value="140"></td>
+<td><select name="namiYamaMethod">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>２連谷第１期</td>
+<td><input type="text" size="3" name="namiTaniS1Min" value="60">～<input type="text" size="3" name="namiTaniS1Max" value="80"></td>
+<td><select name="namiTaniS1Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>２連谷第２期</td>
+<td><input type="text" size="3" name="namiTaniS2Min" value="-10">～<input type="text" size="3" name="namiTaniS2Max" value="-4"></td>
+<td><select name="namiTaniS2Method">
+<option value="1">売値（ベル）</option>
+<option value="2">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4" selected="">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>３連谷第１期</td>
+<td><input type="text" size="3" name="namiTaniL1Min" value="60">～<input type="text" size="3" name="namiTaniL1Max" value="80"></td>
+<td><select name="namiTaniL1Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>３連谷第２期</td>
+<td><input type="text" size="3" name="namiTaniL2Min" value="-10">～<input type="text" size="3" name="namiTaniL2Max" value="-4"></td>
+<td><select name="namiTaniL2Method">
+<option value="1">売値（ベル）</option>
+<option value="2">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4" selected="">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>３連谷第３期</td>
+<td><input type="text" size="3" name="namiTaniL3Min" value="-10">～<input type="text" size="3" name="namiTaniL3Max" value="-4"></td>
+<td><select name="namiTaniL3Method">
+<option value="1">売値（ベル）</option>
+<option value="2">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4" selected="">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td colspan="3">
+谷の第１期の時期：<br>
+<table><tbody>
+<tr><th> </th><th>月A</th><th>月P</th><th>火A</th><th>火P</th><th>水A</th><th>水P</th><th>木A</th><th>木P</th><th>金A</th><th>金P</th><th>土A</th><th>土P</th></tr>
+<tr><td>２連谷</td>
+<td><label><input type="checkbox" name="namiTaniSMonAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSMonPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSTueAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSTuePm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSWedAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSWedPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSThuAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSThuPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSFriAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSFriPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSSatAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniSSatPm" disabled=""></label></td>
+</tr><tr><td>３連谷</td>
+<td><label><input type="checkbox" name="namiTaniLMonAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLMonPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLTueAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLTuePm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLWedAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLWedPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLThuAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLThuPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLFriAm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLFriPm" checked=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLSatAm" disabled=""></label></td>
+<td><label><input type="checkbox" name="namiTaniLSatPm" disabled=""></label></td>
+</tr>
+</tbody></table>
+</td></tr>
+<tr><th colspan="4"> </th></tr>
+<tr><td rowspan="2">ジリ貧型</td><td>月AM</td>
+<td><input type="text" size="3" name="jiriMonAmMin" value="85">～<input type="text" size="3" name="jiriMonAmMax" value="90"></td>
+<td><select name="jiriMonAmMethod">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>月PM～土PM</td>
+<td><input type="text" size="3" name="jiriOtherMin" value="-6">～<input type="text" size="3" name="jiriOtherMax" value="-2"></td>
+<td><select name="jiriOtherMethod">
+<option value="1">売値（ベル）</option>
+<option value="2">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4" selected="">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><th colspan="4"> </th></tr>
+<tr><td rowspan="10">３期型</td><td>月AM</td>
+<td><input type="text" size="3" name="fev3MonAmMin" value="85">～<input type="text" size="3" name="fev3MonAmMax" value="90"></td>
+<td><select name="fev3MonAmMethod">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>（高騰前）</td>
+<td><input type="text" size="3" name="fev3BeforeMin" value="-6">～<input type="text" size="3" name="fev3BeforeMax" value="-2"></td>
+<td><select name="fev3BeforeMethod">
+<option value="1">売値（ベル）</option>
+<option value="2">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4" selected="">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第１期</td>
+<td><input type="text" size="3" name="fev3Period1Min" value="90">～<input type="text" size="3" name="fev3Period1Max" value="140"></td>
+<td><select name="fev3Period1Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第２期</td>
+<td><input type="text" size="3" name="fev3Period2Min" value="140">～<input type="text" size="3" name="fev3Period2Max" value="200"></td>
+<td><select name="fev3Period2Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第３期</td>
+<td><input type="text" size="3" name="fev3Period3Min" value="200">～<input type="text" size="3" name="fev3Period3Max" value="600"></td>
+<td><select name="fev3Period3Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第４期</td>
+<td><input type="text" size="3" name="fev3Period4Min" value="140">～<input type="text" size="3" name="fev3Period4Max" value="200"></td>
+<td><select name="fev3Period4Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第５期</td>
+<td><input type="text" size="3" name="fev3Period5Min" value="90">～<input type="text" size="3" name="fev3Period5Max" value="140"></td>
+<td><select name="fev3Period5Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第６期</td>
+<td><input type="text" size="3" name="fev3Period6Min" value="40">～<input type="text" size="3" name="fev3Period6Max" value="90"></td>
+<td><select name="fev3Period6Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>（高騰後）</td>
+<td><input type="text" size="3" name="fev3AfterMin" value="40">～<input type="text" size="3" name="fev3AfterMax" value="90"></td>
+<td><select name="fev3AfterMethod">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td colspan="3">
+高騰第１期の時期：<br>
+<table><tbody>
+<tr><th> </th><th>月A</th><th>月P</th><th>火A</th><th>火P</th><th>水A</th><th>水P</th><th>木A</th><th>木P</th><th>金A</th><th>金P</th><th>土A</th><th>土P</th></tr>
+<tr><td>３期型</td>
+<td><label><input type="checkbox" name="fev3MonAm"></label></td>
+<td><label><input type="checkbox" name="fev3MonPm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev3TueAm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev3TuePm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev3WedAm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev3WedPm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev3ThuAm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev3ThuPm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev3FriAm"></label></td>
+<td><label><input type="checkbox" name="fev3FriPm"></label></td>
+<td><label><input type="checkbox" name="fev3SatAm"></label></td>
+<td><label><input type="checkbox" name="fev3SatPm"></label></td>
+</tr></tbody></table>
+</td></tr>
+<tr><th colspan="4"> </th></tr>
+<tr><td rowspan="11">４期型</td><td>月AM</td>
+<td><input type="text" size="3" name="fev4MonAmMin" value="40">～<input type="text" size="3" name="fev4MonAmMax" value="90"></td>
+<td><select name="fev4MonAmMethod">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>（高騰前）</td>
+<td><input type="text" size="3" name="fev4BeforeMin" value="-6">～<input type="text" size="3" name="fev4BeforeMax" value="-2"></td>
+<td><select name="fev4BeforeMethod">
+<option value="1">売値（ベル）</option>
+<option value="2">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4" selected="">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第１期</td>
+<td><input type="text" size="3" name="fev4Period1Min" value="90">～<input type="text" size="3" name="fev4Period1Max" value="140"></td>
+<td><select name="fev4Period1Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第２期</td>
+<td><input type="text" size="3" name="fev4Period2Min" value="90">～<input type="text" size="3" name="fev4Period2Max" value="140"></td>
+<td><select name="fev4Period2Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第３期</td>
+<td><input type="text" size="3" name="fev4Period3Min" value="140">～<input type="text" size="3" name="fev4Period3Max" value="190"></td>
+<td><select name="fev4Period3Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第４期</td>
+<td><input type="text" size="3" name="fev4Period4Min" value="140">～<input type="text" size="3" name="fev4Period4Max" value="200"></td>
+<td><select name="fev4Period4Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第５期</td>
+<td><input type="text" size="3" name="fev4Period5Min" value="140">～<input type="text" size="3" name="fev4Period5Max" value="190"></td>
+<td><select name="fev4Period5Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>高騰第６期</td>
+<td><input type="text" size="3" name="fev4Period6Min" value="40">～<input type="text" size="3" name="fev4Period6Max" value="90"></td>
+<td><select name="fev4Period6Method">
+<option value="1">売値（ベル）</option>
+<option value="2" selected="">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td>（高騰後）</td>
+<td><input type="text" size="3" name="fev4AfterMin" value="-6">～<input type="text" size="3" name="fev4AfterMax" value="-2"></td>
+<td><select name="fev4AfterMethod">
+<option value="1">売値（ベル）</option>
+<option value="2">買値比（％）</option>
+<option value="3">今期売値－前期売値（ベル）</option>
+<option value="4" selected="">今期買値比－前期買値比（％）</option>
+<option value="5">今期売値÷前期売値×100</option>
+</select></td></tr>
+<tr><td colspan="3">
+高騰第１期の時期：<br>
+<table><tbody>
+<tr><th> </th><th>月A</th><th>月P</th><th>火A</th><th>火P</th><th>水A</th><th>水P</th><th>木A</th><th>木P</th><th>金A</th><th>金P</th><th>土A</th><th>土P</th></tr>
+<tr><td>４期型</td>
+<td><label><input type="checkbox" name="fev4MonAm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4MonPm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4TueAm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4TuePm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4WedAm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4WedPm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4ThuAm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4ThuPm" checked=""></label></td>
+<td><label><input type="checkbox" name="fev4FriAm"></label></td>
+<td><label><input type="checkbox" name="fev4FriPm"></label></td>
+<td><label><input type="checkbox" name="fev4SatAm"></label></td>
+<td><label><input type="checkbox" name="fev4SatPm"></label></td>
+</tr></tbody></table>
+</td></tr>
+<tr><td colspan="3"><label><input type="checkbox" name="fev4Period4IsPeak" checked="" value="true">第４期がピーク</label></td></tr>
+<tr><th>型</th><th>時期</th><th>変動値</th><th>変動方式</th></tr>
+</tbody></table>
+</p>
+</form>
+</div>	<!-- div.option#optionblock -->
+
+<!--고급 마지막-->
+
+<input type="button" id="hideButton2" value="詳細設定を非表示" style="display: none;" onclick="hideOption();">
+<hr align="left" width="300px">
+
+<form action="http://tobikabu.web.fc2.com/tobikabu.html#" name="kabuka">
+<h4>무 시세 입력란</h4> <!-- 순무 가격 입력란 -->
+<h5>1줄로 빠르게 입력하기</h5> <!-- 1줄로 입력하기 -->
+<p>
+일요일 구매가격, 요일별 오전/오후 시세를 공백으로 구분하여 입력하세요.<br>
+　예시 : 99 110/122 133/ 62/54 98/69 64<br>
+<input type="text" size="70" maxlength="100" name="line" tabindex="1">
+<input type="button" value="↓" onclick="lineToPrice();resetResult();calc();" tabindex="2">
+</p>
+<br>
+
+<!-- 가격 입력란 -->
+
+<h5>개별입력란</h5>
+<p>
+무 구입가<select name="p0" tabindex="3">
+<option value="">？</option>
+<option value="90">90</option>
+<option value="91">91</option>
+<option value="92">92</option>
+<option value="93">93</option>
+<option value="94">94</option>
+<option value="95">95</option>
+<option value="96">96</option>
+<option value="97">97</option>
+<option value="98">98</option>
+<option value="99">99</option>
+<option value="100" selected="">100</option>
+<option value="101">101</option>
+<option value="102">102</option>
+<option value="103">103</option>
+<option value="104">104</option>
+<option value="105">105</option>
+<option value="106">106</option>
+<option value="107">107</option>
+<option value="108">108</option>
+<option value="109">109</option>
+<option value="110">110</option>
+<option value="">？</option>
+</select>
+<table class="inputTable"><tbody>
+<tr><th>시세</th><th>오전</th><th>/</th><th>오후</th></tr>
+<tr><th>월</th><td><input type="text" size="3" maxlength="3" name="p1" tabindex="4"></td><td>/</td><td><input type="text" size="3" maxlength="3" name="p2" tabindex="5"></td></tr>
+<tr><th>화</th><td><input type="text" size="3" maxlength="3" name="p3" tabindex="6"></td><td>/</td><td><input type="text" size="3" maxlength="3" name="p4" tabindex="7"></td></tr>
+<tr><th>수</th><td><input type="text" size="3" maxlength="3" name="p5" tabindex="8"></td><td>/</td><td><input type="text" size="3" maxlength="3" name="p6" tabindex="9"></td></tr>
+<tr><th>목</th><td><input type="text" size="3" maxlength="3" name="p7" tabindex="10"></td><td>/</td><td><input type="text" size="3" maxlength="3" name="p8" tabindex="11"></td></tr>
+<tr><th>금</th><td><input type="text" size="3" maxlength="3" name="p9" tabindex="12"></td><td>/</td><td><input type="text" size="3" maxlength="3" name="p10" tabindex="13"></td></tr>
+<tr><th>토</th><td><input type="text" size="3" maxlength="3" name="p11" tabindex="14"></td><td>/</td><td><input type="text" size="3" maxlength="3" name="p12" tabindex="15"></td></tr>
+</tbody></table>
+<input type="button" value="예측하기" onclick="calc();setCookie();" tabindex="16"><input type="reset" value="리셋하기" onclick="resetResult();" tabindex="17">
+</p>
+</form>
+
+<div class="result" id="resultblock"></div>	<!-- div.result#resultblock -->
+<div class="debug" id="debugblock"></div>	<!-- div.debug#debugblock -->
+</div>	<!-- div.main -->
+
+</body></html>
